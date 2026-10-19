@@ -1,0 +1,61 @@
+# R8: images are linux/arm64 only, so the suite also runs on an ARM runner.
+# PR: test on ARM. main: test, then build + push to dev ECR tagged with the commit SHA.
+# Deploy = PR that writes that SHA into infra/envs/dev.image (reviewed record, R2).
+# TODO: pin actions to SHAs; copy the postgres image digest from docker-compose.yml.
+name: app-image
+on:
+  pull_request:
+    paths: ["src/**", "migrations/**", "tools/**", "pyproject.toml", "uv.lock", "Dockerfile", ".github/workflows/app-image.yml"]
+  push:
+    branches: [main]
+    paths: ["src/**", "migrations/**", "tools/**", "pyproject.toml", "uv.lock", "Dockerfile", ".github/workflows/app-image.yml"]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  test-arm64:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 120
+    services:
+      postgres:
+        image: postgres:16.15@sha256:REPLACE_WITH_DIGEST_FROM_DOCKER_COMPOSE
+        env:
+          POSTGRES_USER: evidence
+          POSTGRES_PASSWORD: evidence
+          POSTGRES_DB: evidence
+        ports: ["55432:5432"]
+        options: >-
+          --tmpfs /var/lib/postgresql/data
+          --health-cmd "pg_isready -U evidence"
+          --health-interval 5s --health-retries 20
+    env:
+      EVIDENCE_DATABASE_URL: postgresql://evidence:evidence@127.0.0.1:55432/evidence
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen
+      - run: uv run python tools/provision_dev.py
+      - run: uv run python tools/migrate.py --dir migrations
+      - run: uv run pytest
+
+  build-push-dev:
+    if: github.event_name == 'push'
+    needs: test-arm64
+    runs-on: ubuntu-24.04-arm
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_APPLY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Build and push
+        run: |
+          IMAGE="${{ steps.ecr.outputs.registry }}/ec-dev-collector:${GITHUB_SHA}"
+          docker build --platform linux/arm64 -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "Promote: set infra/envs/dev.image to ${GITHUB_SHA} in a PR" >> "$GITHUB_STEP_SUMMARY"

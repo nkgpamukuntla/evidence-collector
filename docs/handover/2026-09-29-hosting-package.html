@@ -1,0 +1,600 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Evidence Collector Hosting Package</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap">
+<style>
+/* Layout: one reading column under a navy blueprint band; tables and code scroll inside their own boxes. */
+:root {
+  --page: #fafafa;
+  --card: #ffffff;
+  --warm: #f3f0ec;
+  --ink: #111111;
+  --body: #4a4d55;
+  --muted: #8a8d96;
+  --line: rgba(13, 27, 62, 0.09);
+  --line-strong: rgba(13, 27, 62, 0.18);
+  --accent: #d9661c;
+  --accent-soft: rgba(240, 123, 47, 0.1);
+  --band: #070f22;
+  --band-ink: #ffffff;
+  --band-ink-2: rgba(255, 255, 255, 0.66);
+  --band-hair: rgba(255, 255, 255, 0.14);
+  --band-orange: #f07b2f;
+  --code-bg: #f1f2f5;
+  --stop: #b3261e;
+  --stop-soft: rgba(179, 38, 30, 0.07);
+
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "DM Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --measure: 46rem;
+  --r-sm: 10px;
+  --r: 16px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #070f22;
+    --card: #0d1b3e;
+    --warm: #13244b;
+    --ink: #ffffff;
+    --body: rgba(255, 255, 255, 0.72);
+    --muted: rgba(255, 255, 255, 0.45);
+    --line: rgba(255, 255, 255, 0.09);
+    --line-strong: rgba(255, 255, 255, 0.18);
+    --accent: #f5924f;
+    --accent-soft: rgba(240, 123, 47, 0.14);
+    --band: #0d1b3e;
+    --code-bg: rgba(255, 255, 255, 0.06);
+    --stop: #ff8a80;
+    --stop-soft: rgba(255, 138, 128, 0.08);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --page: #070f22;
+  --card: #0d1b3e;
+  --warm: #13244b;
+  --ink: #ffffff;
+  --body: rgba(255, 255, 255, 0.72);
+  --muted: rgba(255, 255, 255, 0.45);
+  --line: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.18);
+  --accent: #f5924f;
+  --accent-soft: rgba(240, 123, 47, 0.14);
+  --band: #0d1b3e;
+  --code-bg: rgba(255, 255, 255, 0.06);
+  --stop: #ff8a80;
+  --stop-soft: rgba(255, 138, 128, 0.08);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--page);
+  color: var(--body);
+  font: 400 1rem/1.65 var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Band */
+.band {
+  background: var(--band);
+  color: var(--band-ink);
+  padding-block: 3rem 2.5rem;
+  padding-inline: 16px;
+  background-image:
+    linear-gradient(var(--band-hair) 1px, transparent 1px),
+    linear-gradient(90deg, var(--band-hair) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: -1px -1px;
+  border-bottom: 1px solid var(--line-strong);
+}
+.band-inner { max-width: var(--measure); margin: 0 auto; display: grid; gap: 1rem; }
+.eyebrow {
+  font: 500 0.74rem/1.4 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--band-orange);
+}
+.band h1 {
+  margin: 0;
+  font-weight: 700;
+  font-size: clamp(1.9rem, 4.6vw, 2.7rem);
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+  color: var(--band-ink);
+}
+.band .lede { margin: 0; color: var(--band-ink-2); font-size: 1.08rem; max-width: 40rem; }
+.band .lede strong { color: var(--band-ink); font-weight: 500; }
+.status { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+.chip {
+  font: 500 0.74rem/1 var(--font-mono);
+  letter-spacing: 0.04em;
+  padding: 0.45rem 0.7rem;
+  border-radius: 100px;
+  border: 1px solid var(--band-hair);
+  color: var(--band-ink-2);
+  background: rgba(255, 255, 255, 0.04);
+  white-space: nowrap;
+}
+.chip b { color: var(--band-ink); font-weight: 500; }
+.chip.none b { color: var(--band-orange); }
+
+/* Column */
+main { padding-inline: 16px; padding-block: 2rem 4rem; }
+.col { max-width: var(--measure); margin: 0 auto; display: grid; gap: 3rem; }
+section { display: grid; gap: 1rem; min-width: 0; }
+.label {
+  font: 500 0.74rem/1.4 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.6rem;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+  text-wrap: balance;
+}
+h3 {
+  margin: 0.75rem 0 0;
+  color: var(--ink);
+  font-size: 1.15rem;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+p { margin: 0; }
+strong { color: var(--ink); font-weight: 500; }
+a { color: var(--accent); text-underline-offset: 2px; }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+code {
+  font: 400 0.86em/1.4 var(--font-mono);
+  background: var(--code-bg);
+  padding: 0.1em 0.35em;
+  border-radius: 5px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+ul, ol { margin: 0; padding-left: 1.25rem; display: grid; gap: 0.45rem; }
+li::marker { color: var(--muted); }
+
+/* Contents */
+.toc {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.25rem 1.5rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--card);
+}
+.toc a {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  padding: 0.3rem 0;
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 500;
+}
+.toc a span { font: 400 0.74rem/1 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.toc a:hover { color: var(--accent); }
+
+/* Ask */
+.ask { display: grid; gap: 0.75rem; }
+.ask-item {
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  padding: 1rem 1.1rem;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+}
+.ask-item .n {
+  font: 500 0.9rem/1.6 var(--font-mono);
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.ask-item p { min-width: 0; }
+
+/* Rules */
+.rules { list-style: none; padding: 0; display: grid; gap: 0; border-top: 1px solid var(--line); }
+.rules li {
+  display: grid;
+  grid-template-columns: 2.6rem 1fr;
+  gap: 0.75rem;
+  padding: 0.95rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.rules .id { font: 500 0.78rem/1.75 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.rules .txt { min-width: 0; display: grid; gap: 0.25rem; }
+.rules .txt strong { font-size: 1.02rem; }
+.rules .why { color: var(--muted); font-size: 0.92rem; }
+
+/* Steps */
+.steps { list-style: none; padding: 0; counter-reset: step; display: grid; gap: 0.9rem; }
+.steps > li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 2.25rem 1fr;
+  gap: 0.75rem;
+}
+.steps > li::before {
+  content: counter(step);
+  font: 500 0.82rem/1 var(--font-mono);
+  color: var(--accent);
+  width: 1.9rem; height: 1.9rem;
+  display: grid; place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  margin-top: 0.1rem;
+}
+.steps > li > div { min-width: 0; display: grid; gap: 0.35rem; }
+
+/* Tables */
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--card);
+}
+table { border-collapse: collapse; width: 100%; font-size: 0.92rem; min-width: 34rem; }
+th, td { text-align: left; vertical-align: top; padding: 0.7rem 0.9rem; border-bottom: 1px solid var(--line); }
+th {
+  font: 500 0.7rem/1.4 var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: var(--warm);
+}
+tr:last-child td { border-bottom: 0; }
+td:first-child { color: var(--ink); font-weight: 500; }
+
+/* Callouts */
+.stop {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--stop);
+  border-radius: var(--r-sm);
+  background: var(--stop-soft);
+}
+.stop .label { color: var(--stop); }
+.note {
+  padding: 0.9rem 1.1rem;
+  border-radius: var(--r-sm);
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-size: 0.95rem;
+}
+
+pre {
+  margin: 0;
+  overflow-x: auto;
+  background: var(--code-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 0.9rem 1rem;
+  font: 400 0.85rem/1.6 var(--font-mono);
+  color: var(--ink);
+}
+pre code { background: none; padding: 0; font-size: inherit; }
+
+.owner {
+  font: 500 0.72rem/1 var(--font-mono);
+  letter-spacing: 0.04em;
+  padding: 0.3rem 0.55rem;
+  border-radius: 100px;
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+  white-space: nowrap;
+}
+.owner.tim { border-color: var(--accent); color: var(--accent); }
+
+footer {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font: 400 0.8rem/1.6 var(--font-mono);
+}
+
+@media (max-width: 520px) {
+  .rules li { grid-template-columns: 2rem 1fr; }
+  .ask-item { grid-template-columns: 1.5rem 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+html { scroll-behavior: smooth; }
+</style>
+
+<header class="band">
+  <div class="band-inner">
+    <div class="eyebrow">D-Biz · Architecture handover · 29 September 2026</div>
+    <h1>Evidence Collector Hosting Package</h1>
+    <p class="lede">For <strong>Naresh</strong>: what you need to stand up the collector's AWS hosting and its test environments. The code runs today against local databases and recorded fixtures. <strong>Nothing has been deployed, and no real data has ever been collected.</strong></p>
+    <div class="status">
+      <span class="chip">Code <b>steps 1–9 built</b></span>
+      <span class="chip">Tests <b>2,153</b></span>
+      <span class="chip none">AWS account <b>none</b></span>
+      <span class="chip none">Deployed <b>nothing</b></span>
+      <span class="chip none">Test tenants <b>none</b></span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="col">
+
+    <section aria-labelledby="what">
+      <div class="label">The system</div>
+      <h2 id="what">What you are hosting</h2>
+      <p>The collector measures a public entity's actual security controls (a county, a court) against versioned control sets. It reads those controls through read-only credentials the entity grants. It stores raw responses, turns them into observations, and evaluates the observations into a per-entity evidence record that the entity owns and releases. Microsoft Graph is the first source; other vendors (EDR, backup, training) follow as separate adapters.</p>
+      <p>It has three parts to host: a <strong>worker</strong> that calls the sources and writes sealed raw bundles to S3; an <strong>evaluator</strong> with no network access that turns stored data into results; and a <strong>PostgreSQL 16</strong> database holding the ledger, the observations and the evaluations. A deadman alarm pages when collection stops.</p>
+    </section>
+
+    <nav class="toc" aria-label="Contents">
+      <a href="#ask"><span>1</span>What we are asking</a>
+      <a href="#rules"><span>2</span>Rules the design must keep</a>
+      <a href="#built"><span>3</span>Terraform already written</a>
+      <a href="#hosting"><span>4</span>Hosting, in order</a>
+      <a href="#missing"><span>5</span>Hosting still to design</a>
+      <a href="#local"><span>6</span>Developer and CI setup</a>
+      <a href="#tenants"><span>7</span>Microsoft test tenants</a>
+      <a href="#registration"><span>8</span>The app registration</a>
+      <a href="#open"><span>9</span>Open decisions</a>
+      <a href="#read"><span>10</span>What to read first</a>
+    </nav>
+
+    <section aria-labelledby="ask">
+      <div class="label">1 · The request</div>
+      <h2 id="ask">What we are asking you to do</h2>
+      <div class="ask">
+        <div class="ask-item"><span class="n">A</span><p><strong>Stand up a new AWS account and apply the Terraform in <code>infra/</code>.</strong> It has been checked offline against a mocked provider only, and it has never been applied.</p></div>
+        <div class="ask-item"><span class="n">B</span><p><strong>Design the pieces that have not been written yet:</strong> the worker's network, compute, the database, the Terraform state backend and the external deadman monitor. Section 5 lists each one with the constraint it must meet.</p></div>
+        <div class="ask-item"><span class="n">C</span><p><strong>Set up the Microsoft side:</strong> three test tenants, one per licensing profile, and the home tenant for the collector's app registration, hardened before any county consents.</p></div>
+      </div>
+      <p>Changes come back as pull requests against the repository, on a branch and never on <code>main</code>. <code>main</code> only moves when a PR is merged with every CI check green.</p>
+    </section>
+
+    <section aria-labelledby="rules">
+      <div class="label">2 · Constraints</div>
+      <h2 id="rules">Rules the design must keep</h2>
+      <p>These are settled. Each one is either enforced by a test or recorded as a decision in the repository. If one blocks a design you prefer, raise it with Tim, with evidence. Please don't work around it.</p>
+      <ol class="rules">
+        <li><span class="id">R1</span><div class="txt"><strong>A new AWS account, separate from PRISM.</strong><span class="why">No code or infrastructure is carried over from the predecessor platform. Stack choices only.</span></div></li>
+        <li><span class="id">R2</span><div class="txt"><strong>Everything through Terraform. Nothing configured by hand.</strong><span class="why">The Terraform files are the reviewed record of what exists. A console change is invisible to that review.</span></div></li>
+        <li><span class="id">R3</span><div class="txt"><strong>No private key on disk, in a vault or in a file.</strong><span class="why">The Microsoft credential is a non-exportable KMS RSA-2048 key. The token request is signed with <code>kms:Sign</code>. Every county will trust that key, so it never exists outside KMS.</span></div></li>
+        <li><span class="id">R4</span><div class="txt"><strong>Each key policy is the only authority over its key.</strong><span class="why">No statement delegates to the account root. Key administrators can manage keys but cannot use them. Nobody gets <code>kms:CreateGrant</code>, because a grant lets its creator give themselves Decrypt without the policy changing. This affects RDS (section 5).</span></div></li>
+        <li><span class="id">R5</span><div class="txt"><strong>Source credentials never pass through Terraform.</strong><span class="why">Terraform state stores every attribute, secret values included. Onboarding writes credentials into Secrets Manager under <code>ec/&lt;env&gt;/source/</code>.</span></div></li>
+        <li><span class="id">R6</span><div class="txt"><strong>The evaluator has no internet.</strong><span class="why">Its only egress is S3 (the raw bucket), KMS and Postgres, enforced by its security group and endpoint policies. The worker, which calls Microsoft, gets its own subnets and route table.</span></div></li>
+        <li><span class="id">R7</span><div class="txt"><strong>Read-only access to every measured entity, granted by the entity.</strong><span class="why">Microsoft access is a multi-tenant Entra app: application read permissions, certificate authentication, verified publisher. Never GDAP, never CSP admin rights, never Lighthouse. D-Biz's CSP relationship through TD SYNNEX may be used to <em>provision</em> test tenants, never to <em>read</em> one.</span></div></li>
+        <li><span class="id">R8</span><div class="txt"><strong>Compute runs on Graviton.</strong><span class="why">ECS on Fargate, <code>runtime_platform</code> ARM64, images built for <code>linux/arm64</code> only (decided on cost). CI tests on x86 today, so the ARM image needs a test run of its own.</span></div></li>
+        <li><span class="id">R9</span><div class="txt"><strong>PostgreSQL 16.</strong><span class="why">Pinned to 16.15 by image digest locally and in CI. Every database behavior the migrations rely on was verified on 16. Moving the major version is a decision with a full test run attached.</span></div></li>
+        <li><span class="id">R10</span><div class="txt"><strong>Do not deploy the deadman alarm before the collector's process entry point exists.</strong><span class="why">The alarm fires when the heartbeat metric stops arriving. Until the service that publishes the heartbeat is running, it would page continuously, and a deadman that always pages gets muted.</span></div></li>
+        <li><span class="id">R11</span><div class="txt"><strong>Never describe the database as tenant isolation.</strong><span class="why">Row-level security keys on context the client sets, so it separates code paths, not principals. What holds against a compromised component is the grants.</span></div></li>
+      </ol>
+    </section>
+
+    <section aria-labelledby="built">
+      <div class="label">3 · Existing code</div>
+      <h2 id="built">Terraform already written</h2>
+      <p>Terraform 1.16.3 and AWS provider 6.65.0, both pinned. <code>bash tools/terraform.sh check</code> runs <code>fmt</code>, <code>validate</code> and the <code>tftest</code> suites against a mocked provider with no AWS call. CI runs the same script. A Python test holds what a mock cannot show, such as the absence of any route off the VPC.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>File</th><th>What it creates</th></tr></thead>
+          <tbody>
+            <tr><td><code>kms.tf</code></td><td>Four kinds of key, one job each (below).</td></tr>
+            <tr><td><code>s3.tf</code></td><td>The raw-bundle bucket: Object Lock in governance mode for 90 days, versioned, never public, and a policy tying each tenant's prefix to that tenant's key.</td></tr>
+            <tr><td><code>iam.tf</code></td><td>Three roles. <code>worker</code> writes bundles and cannot read them. <code>evaluator</code> reads them and nothing else. <code>terminator</code> is for humans with MFA, and is the only thing that can reach inside a lock.</td></tr>
+            <tr><td><code>liveness.tf</code></td><td>The in-account half of the deadman: an SNS topic only CloudWatch may publish to, and an alarm that fires when the heartbeat stops (missing data counts as breaching).</td></tr>
+            <tr><td><code>network.tf</code></td><td>The evaluator's fence: subnets with no route off the VPC, an S3 endpoint that admits the raw bucket only, and a security group whose only egress is S3, KMS and Postgres.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Key</th><th>Type</th><th>Who may use it, and for what</th></tr></thead>
+          <tbody>
+            <tr><td><code>raw[tenant]</code></td><td>Symmetric, yearly rotation</td><td>Worker seals bundles through S3; evaluator opens them through S3; both bound to that tenant's prefix. Terminator schedules deletion.</td></tr>
+            <tr><td><code>signing</code></td><td>RSA-2048, sign/verify</td><td>Worker signs with RS256 only: the Microsoft client assertion.</td></tr>
+            <tr><td><code>fingerprint</code></td><td>HMAC-256</td><td>Worker generates the credential fingerprint recorded on every exchange.</td></tr>
+            <tr><td><code>secrets</code></td><td>Symmetric, yearly rotation</td><td>Worker decrypts source credentials under <code>ec/&lt;env&gt;/source/</code>. Onboarding, if named, writes them.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>Decisions already made in that code</h3>
+      <ul>
+        <li><strong>Keys are per tenant.</strong> Terminating a tenant means scheduling its key for deletion. After the 30-day window, every copy of its bundles is unreadable.</li>
+        <li><strong>At most 36 tenants per deployment.</strong> The bucket policy carries about 510 bytes per tenant and AWS caps it at 20 KB; 40 tenants measured at 21,014 bytes. Past 36, the per-tenant rule moves to per-tenant access points, which is a design change.</li>
+        <li><strong>S3 Bucket Keys are off,</strong> so each object's encryption context binds its key to its own tenant's prefix. Cost: one KMS request per bundle.</li>
+        <li><strong>No multipart uploads,</strong> which would need <code>kms:Decrypt</code> for the worker. One PUT takes up to 5 GB.</li>
+        <li><strong>Governance mode, not compliance mode,</strong> because deletion on termination is required. The terminator role can bypass the lock; nothing else can.</li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="hosting">
+      <div class="label">4 · Sequence</div>
+      <h2 id="hosting">Hosting, in order</h2>
+      <ol class="steps">
+        <li><div><strong>Create the account and pick the region.</strong><p>The cost estimate assumed us-east-1; the region is not decided. Turn on CloudTrail. The key design relies on it to make any key-policy change visible, and it is not in <code>infra/</code> yet.</p></div></li>
+        <li><div><strong>Decide where Terraform state lives and add the backend.</strong><p>No backend is configured. State must never hold a secret, which is why R5 exists.</p></div></li>
+        <li><div><strong>Create the human principals.</strong><p>Key administrators: the principal that runs <code>terraform apply</code> must be one of them, or KMS refuses every key policy as a lockout. Terminator principals: humans only, with MFA. Secret writers for onboarding: may be empty at first.</p></div></li>
+        <li><div><strong>Write a <code>.tfvars</code> locally and never commit it.</strong><p>It is in <code>.gitignore</code>. The variables are below.</p></div></li>
+        <li><div><strong>Apply to a <code>dev</code> environment first.</strong><p>Every resource name carries the environment (<code>ec-dev-…</code>), so <code>dev</code> and <code>prod</code> can share an account or live in separate ones. That choice is open (section 9).</p></div></li>
+      </ol>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Variable</th><th>Default</th><th>Constraint</th></tr></thead>
+          <tbody>
+            <tr><td><code>region</code></td><td>none</td><td>One region; a KMS key lives in one region.</td></tr>
+            <tr><td><code>environment</code></td><td>none</td><td>2–12 lowercase letters or digits, such as <code>dev</code> or <code>prod</code>.</td></tr>
+            <tr><td><code>availability_zones</code></td><td>none</td><td>At least two distinct zones.</td></tr>
+            <tr><td><code>vpc_cidr</code></td><td><code>10.40.0.0/16</code></td><td>/20 or larger.</td></tr>
+            <tr><td><code>tenant_ids</code></td><td>empty</td><td>Lowercase UUIDs (the collector's own tenant ids), 36 at most.</td></tr>
+            <tr><td><code>raw_retention_days</code></td><td>90</td><td>1–395 days; also the lock period.</td></tr>
+            <tr><td><code>key_deletion_window_days</code></td><td>30</td><td>7–30, AWS's limits. The undo window for a shred.</td></tr>
+            <tr><td><code>key_admin_principal_arns</code></td><td>none</td><td>At least one IAM role or user; include the apply principal.</td></tr>
+            <tr><td><code>terminator_principal_arns</code></td><td>none</td><td>At least one; assumed with MFA.</td></tr>
+            <tr><td><code>secret_writer_principal_arns</code></td><td>empty</td><td>Onboarding writers.</td></tr>
+            <tr><td><code>liveness_period_minutes</code></td><td>5</td><td>How often a collection tick is expected to finish.</td></tr>
+            <tr><td><code>liveness_grace_periods</code></td><td>2</td><td>2–5 silent periods before the alarm fires.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="missing">
+      <div class="label">5 · Your design input</div>
+      <h2 id="missing">Hosting still to design</h2>
+      <p>None of this exists yet. Each item names the constraint it has to meet.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Piece</th><th>What it needs</th></tr></thead>
+          <tbody>
+            <tr><td>Worker network</td><td>Its own subnets and its own route table with egress to <code>login.microsoftonline.com</code> and <code>graph.microsoft.com</code>. Kept apart from the evaluator's subnets, which have no route off the VPC.</td></tr>
+            <tr><td>Compute</td><td>ECS services on Fargate ARM64, ECR, CloudWatch Logs. <strong>A task in the evaluator's subnets cannot start today:</strong> it needs interface endpoints for <code>ecr.api</code>, <code>ecr.dkr</code> and <code>logs</code>, each with its own security group, plus an S3 endpoint statement for the region's ECR layer bucket. The details are written in <code>infra/network.tf</code>.</td></tr>
+            <tr><td>Database</td><td>RDS for PostgreSQL 16. <strong>Its encryption key is an open question:</strong> RDS needs <code>kms:CreateGrant</code> to use a customer key, and R4 gives that to nobody. Please propose an answer rather than adding the permission. The migrations create the runtime roles; whatever creates the database must also grant CONNECT to each role (locally, the test harness does this).</td></tr>
+            <tr><td>Terraform state</td><td>A backend that holds no secret and is itself access-controlled.</td></tr>
+            <tr><td>External deadman</td><td>A monitor outside the AWS account, with escalation, so it keeps working when the account's own network is what failed. Its URL is a capability and lives in Secrets Manager. The in-account alarm fires between 10 and 15 minutes of silence; the external monitor holds the exact rule. Provider not chosen.</td></tr>
+            <tr><td>Paging</td><td>A destination for the SNS topic in <code>liveness.tf</code>. Not chosen.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note"><strong>Rough cost, not a quote.</strong> From list prices recalled for us-east-1 and not checked against AWS (about ±25%): around $470 a month in year one for 159 counties in one deployment, or about $1,170 as five deployments under the 36-tenant ceiling. Yearly rotation of the per-tenant keys is the figure to check first.</div>
+    </section>
+
+    <section aria-labelledby="local">
+      <div class="label">6 · Test environment</div>
+      <h2 id="local">Developer and CI setup</h2>
+      <p>This already works and needs nothing from you unless you want to run the suite yourself. The local database lives in RAM and dies with the container, deliberately.</p>
+<pre><code>docker compose up -d postgres
+export EVIDENCE_DATABASE_URL=postgresql://evidence:evidence@127.0.0.1:55432/evidence
+uv run python tools/provision_dev.py
+uv run python tools/migrate.py --dir migrations
+uv run pytest
+docker compose down -v</code></pre>
+      <ul>
+        <li><strong>Postgres 16.15</strong>, pinned by the same image digest in <code>docker-compose.yml</code> and CI, on <code>127.0.0.1:55432</code>.</li>
+        <li><strong>Python via <code>uv</code></strong>, every package pinned in <code>uv.lock</code>. Ruff and mypy strict.</li>
+        <li><strong>GitHub Actions</strong>: lint, pytest against an ephemeral Postgres, and Terraform offline. Runs on pull requests and on pushes to <code>main</code>. Actions are pinned by commit SHA.</li>
+        <li><strong>2,153 tests</strong>, run serially, about 45 minutes on a workstation.</li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="tenants">
+      <div class="label">7 · Test environment</div>
+      <h2 id="tenants">Microsoft test tenants</h2>
+      <p>The first live run measures what Microsoft actually returns on each licensing level: an empty list, a 403 or a 404. Until each answer is observed, the collector withholds any adverse result that depends on it. We need <strong>three tenants we own</strong>, each read once with Security Defaults on and once with it off.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Profile</th><th>What it is</th><th>Documented route</th><th>Limit</th></tr></thead>
+          <tbody>
+            <tr><td>No Entra ID P1</td><td>A free Entra tenant</td><td>A new tenant created from an existing paid tenant; the creator becomes Global Administrator.</td><td>No Conditional Access, by design of the profile.</td></tr>
+            <tr><td>P1 + Intune</td><td>Microsoft 365 Business Premium</td><td>Partner Success Core: 15 seats of Business Premium (no Teams), redeemed into a separate test tenant.</td><td>$925 a year; one per Partner Global account; use rights end with the membership year.</td></tr>
+            <tr><td>P2</td><td>An E5 developer tenant</td><td>Microsoft 365 Developer Program E5 sandbox.</td><td>Up to 90 days, renewed only on development activity; Microsoft may require recreating it. One per developer account.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ul>
+        <li><strong>D-Biz is an indirect CSP reseller through TD SYNNEX,</strong> so it cannot create customer or sandbox tenants itself, and a CSP partner cannot sell to itself. No TD SYNNEX demo or NFR tenant program was found.</li>
+        <li><strong>Deferred:</strong> E3 with Defender for Office P2 (no clean route), and GCC (no documented route without a validated government customer). GCC High and DoD need a separate registration in Azure Government and are out of scope.</li>
+        <li><strong>Each test tenant is read exactly as a county's would be.</strong> Its own Global Administrator grants admin consent to the app. No partner relationship is used to read it.</li>
+        <li>Research date for these routes: 28 September 2026. The full notes with sources are in <code>review/2026-09-28-step8/sources/partner-tenants.md</code>.</li>
+      </ul>
+      <h3>Permissions each test tenant consents to</h3>
+      <p>Five application permissions, each the least-privileged one its endpoint's documentation names. They reach more than we read, and the excess is disclosed on every county's record and consent page.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Permission</th><th>What we read with it</th><th>What else it reaches</th></tr></thead>
+          <tbody>
+            <tr><td><code>Policy.Read.All</code></td><td>Conditional Access policies; Security Defaults</td><td>Every other policy object in the directory, read-only</td></tr>
+            <tr><td><code>RoleManagement.Read.Directory</code></td><td>Role definitions; role assignments</td><td>The rest of the role-management configuration, read-only</td></tr>
+            <tr><td><code>AuditLog.Read.All</code></td><td>The authentication-method registration report only</td><td>Every sign-in and directory audit record in the tenant</td></tr>
+            <tr><td><code>Device.Read.All</code></td><td>Devices</td><td>Every property of every device object, read-only</td></tr>
+            <tr><td><code>LicenseAssignment.Read.All</code></td><td>Subscribed SKUs, to read what the tenant is licensed for</td><td>License assignments for users and groups</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The next build step adds reads of users, named locations, PIM eligibility and group membership as one consent change (<code>User.Read.All</code> and <code>GroupMember.ReadBasic.All</code> among them), so the test tenants will consent a second time.</p>
+      <h3>How the live run is driven</h3>
+<pre><code>uv run python tools/tenant_matrix.py run \
+  --tenant &lt;tenant-uuid&gt; --profile &lt;profile&gt; --generation &lt;n&gt; \
+  --client-id &lt;app-client-id&gt; \
+  --kms-key-id &lt;signing-key-id&gt; --cert &lt;public-cert.pem&gt;</code></pre>
+      <p>It signs through the KMS key, never a local key. The predicted answers (54 cells, none observed yet) are in <code>source-catalogs/microsoft/graph-matrix.json</code>; an answer the prediction did not allow fails the run rather than being fitted.</p>
+      <h3>Later: the canary tenant</h3>
+      <p>A tenant whose controls are held in known states and flipped on a schedule. Each collection cycle must detect the flip, and a cycle whose canary did not report cannot be published. The six-month go/no-go gate (March 2027) needs it running for eight consecutive weeks with no silent miss, so it is worth planning alongside the other three.</p>
+    </section>
+
+    <section aria-labelledby="registration">
+      <div class="label">8 · Root of trust</div>
+      <h2 id="registration">The app registration and its home tenant</h2>
+      <p>Every county that consents trusts the application id, not a particular key. A certificate added to the registration's credentials in our home tenant is honored by every consenting tenant, and a county cannot see that list. So the home tenant is the most sensitive thing we run. Before the first county consents:</p>
+      <ul>
+        <li><strong>Two named people</strong> hold the roles and ownership that can add a credential (Application Administrator, Cloud Application Administrator, owners of the registration), under PIM with phishing-resistant MFA. The registration has no other owner.</li>
+        <li><strong>The default app-management policy blocks password secrets.</strong> It cannot block a second certificate; Microsoft says so.</li>
+        <li><strong>Any change to the registration's certificate list raises an alert.</strong></li>
+        <li><strong>Publisher verification</strong> is complete, through the Microsoft partner account.</li>
+        <li><strong>Each county's record will carry the thumbprints</strong> of the certificates we hold, so a mismatch is at least detectable afterwards.</li>
+      </ul>
+      <h3>The certificate</h3>
+      <p>A self-signed X.509 certificate whose own signature is a <code>kms:Sign</code> by the signing key, so the private key never leaves KMS. <strong>The tool that makes it is not written yet;</strong> it is built once the account exists. It also needs to issue a short-lived certificate, so we can observe what Microsoft returns when one expires. Renewal: a successor is uploaded before the incumbent expires (the credential list holds several), and the collector will refuse to run within 14 days of expiry.</p>
+      <div class="stop">
+        <div class="label">Blocked on a decision</div>
+        <p><strong>Which tenant hosts the registration is open (D7).</strong> Its publisher name appears on every county's consent screen, and the product may not carry D-Biz's name to the client. Please don't create the production registration until Tim settles this. A registration in a D-Biz test tenant for the matrix run is fine.</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="open">
+      <div class="label">9 · Decisions</div>
+      <h2 id="open">Open decisions</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Decision</th><th>Why it matters</th><th>Owner</th></tr></thead>
+          <tbody>
+            <tr><td>D7: the registration's home tenant</td><td>Sets the publisher name counties see and who holds the root of trust.</td><td><span class="owner tim">Tim</span></td></tr>
+            <tr><td>Region</td><td>KMS keys, the bucket and every endpoint live in one region.</td><td><span class="owner tim">Tim</span> <span class="owner">Naresh</span></td></tr>
+            <tr><td>One account or two for dev and prod</td><td>Blast radius and key administration.</td><td><span class="owner">Naresh</span></td></tr>
+            <tr><td>Terraform state backend</td><td>Must hold no secret and be access-controlled.</td><td><span class="owner">Naresh</span></td></tr>
+            <tr><td>Database encryption key</td><td>RDS wants <code>kms:CreateGrant</code>; R4 forbids it.</td><td><span class="owner">Naresh</span></td></tr>
+            <tr><td>External monitor and paging destination</td><td>The deadman has to page a person, from outside the account.</td><td><span class="owner">Naresh</span></td></tr>
+            <tr><td>One registration per program</td><td>Limits a home-tenant compromise to one group of counties, at the cost of one more consent screen per program.</td><td><span class="owner tim">Tim</span>, later</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="read">
+      <div class="label">10 · Repository</div>
+      <h2 id="read">What to read first</h2>
+      <p>Repository: <code>github.com/timhill220/evidence-collector</code>. Tim grants access.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>File</th><th>Why</th></tr></thead>
+          <tbody>
+            <tr><td><code>infra/README.md</code></td><td>The Terraform, its keys, its decisions, and the checklist before the first apply.</td></tr>
+            <tr><td><code>infra/network.tf</code></td><td>The evaluator's fence and exactly what compute must add to it.</td></tr>
+            <tr><td><code>plan.md</code> §3</td><td>The shape of the system: the fenced evaluator, adapters, secrets and the home tenant as root of trust.</td></tr>
+            <tr><td><code>CLAUDE.md</code>, <em>Access</em></td><td>The three conditions every source's credential must meet, and why GDAP was rejected.</td></tr>
+            <tr><td><code>HANDOFF.md</code></td><td>Current state. Search for "Before ANY deployment" and "Still blocking a LIVE run".</td></tr>
+            <tr><td><code>spec.md</code> §5.2</td><td>The Microsoft permissions and what each reaches.</td></tr>
+            <tr><td><code>review/2026-09-28-step8/sources/partner-tenants.md</code></td><td>The researched routes to each test tenant.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><strong>What we need back:</strong> the account id and the principal ARNs once they exist; the three test tenants' ids; and proposals for the section 5 pieces, as Terraform in a pull request.</p>
+    </section>
+
+    <footer>Prepared 29 September 2026 from the repository at step 9. Facts about Microsoft licensing and partner routes were researched on 28 September 2026 and may have moved since.</footer>
+  </div>
+</main>
+
+</body></html>

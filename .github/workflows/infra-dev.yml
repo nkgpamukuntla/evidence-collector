@@ -1,0 +1,46 @@
+# Plan on PR, apply on merge to main. Both jobs bind to the GitHub Environment "dev",
+# which must have required reviewers: that approval gates the OIDC credentials.
+# TODO: pin every action to a commit SHA (repo convention) before merging.
+name: infra-dev
+on:
+  pull_request:
+    paths: ["infra/**", ".github/workflows/infra-dev.yml"]
+  push:
+    branches: [main]
+    paths: ["infra/**", ".github/workflows/infra-dev.yml"]
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: infra-dev
+  cancel-in-progress: false
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    environment: dev
+    env:
+      TF_IN_AUTOMATION: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.16.3
+          terraform_wrapper: false
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_APPLY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Offline checks
+        run: bash tools/terraform.sh check
+      - name: Write tfvars
+        run: echo "${{ secrets.TFVARS_B64 }}" | base64 -d > "$RUNNER_TEMP/env.tfvars"
+      - name: Init
+        run: terraform -chdir=infra init -input=false -backend-config=envs/dev.backend.hcl
+      - name: Plan
+        run: terraform -chdir=infra plan -input=false -var-file="$RUNNER_TEMP/env.tfvars" -out=tfplan
+      - name: Apply
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: terraform -chdir=infra apply -input=false tfplan
