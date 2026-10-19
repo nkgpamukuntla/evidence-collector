@@ -1,25 +1,30 @@
-# Copy to prod.tfvars locally (gitignored). In CI the same content lives in the
-# GitHub Environment secret TFVARS_B64 (base64 of this file).
-region                       = "us-east-1"
-environment                  = "prod"
-availability_zones           = ["us-east-1a", "us-east-1b"]
-vpc_cidr                     = "10.40.0.0/16"
-tenant_ids                   = []
-raw_retention_days           = 90
-key_deletion_window_days     = 30
-key_admin_principal_arns     = ["<human key-admin role ARN>", "<ec-prod-gha-apply role ARN>"]
-terminator_principal_arns    = ["<terminator role ARN (MFA)>"]
+# Copy to prod.tfvars locally (gitignored, never commit).
+region                   = "us-east-1"
+environment              = "prod"
+availability_zones       = ["us-east-1a", "us-east-1b"]
+vpc_cidr                 = "10.40.0.0/16"
+tenant_ids               = []
+raw_retention_days       = 90
+key_deletion_window_days = 30
+key_admin_principal_arns = [
+  "<SSO admin role ARN (the principal running apply)>",
+  "arn:aws:iam::<account>:role/ec-prod-key-admin", # from infra/bootstrap
+]
+terminator_principal_arns    = ["<SSO admin role ARN>"]
 secret_writer_principal_arns = []
 liveness_period_minutes      = 5
 liveness_grace_periods       = 2
+liveness_alarm_enabled       = false # R10: true only once the heartbeat publisher runs
+log_retention_days           = 30
 
-# --- hosting additions (hosting_variables.tf) ---
+# --- hosting ---
 nat_gateway_count       = 2
 endpoint_az_count       = 2
+interface_endpoints     = ["ecr.api", "ecr.dkr", "logs", "kms", "secretsmanager", "monitoring"]
 worker_desired_count    = 0 # stays 0 until the process entry point exists (R10)
 evaluator_desired_count = 0
 db_instance_class       = "db.t4g.small"
 db_multi_az             = true
 db_allocated_storage    = 50
-db_engine_version       = "16.REPLACE" # match 16.15 if RDS offers it; else full test run (R9)
-heartbeat_domain        = ""          # set once the external monitor is chosen
+db_engine_version       = "16.15"
+heartbeat_domain        = ""

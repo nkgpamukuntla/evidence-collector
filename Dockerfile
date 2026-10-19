@@ -16,6 +16,8 @@ FROM python:${PYTHON_VERSION}-slim-bookworm
 RUN useradd --uid 10001 --no-create-home app
 WORKDIR /app
 COPY --from=build --chown=app:app /app /app
+# RDS CA bundle for PGSSLMODE=verify-full (PGSSLROOTCERT is set by the task definition).
+ADD --chown=app:app https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem /app/certs/rds-global-bundle.pem
 ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1
 USER 10001
 # TODO(dev): the process entry point does not exist yet. ECS passes the command per
