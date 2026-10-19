@@ -187,7 +187,7 @@ resource "aws_cognito_user_pool_client" "portal" {
   explicit_auth_flows                  = ["ALLOW_REFRESH_TOKEN_AUTH", "ALLOW_USER_SRP_AUTH"]
   prevent_user_existence_errors        = "ENABLED"
   enable_token_revocation              = true
-  id_token_validity                    = 60
+  id_token_validity                    = var.session_minutes
   access_token_validity                = 60
   refresh_token_validity               = 1
   token_validity_units {

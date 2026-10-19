@@ -29,3 +29,9 @@ variable "deletion_protection" {
   type    = bool
   default = false
 }
+
+variable "session_minutes" {
+  description = "How long a portal sign-in lasts (Cognito ID token validity, 5-1440 minutes)."
+  type        = number
+  default     = 480
+}
