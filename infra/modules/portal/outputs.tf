@@ -9,3 +9,5 @@ output "cognito_user_pool_id" { value = aws_cognito_user_pool.portal.id }
 output "cognito_client_id" { value = aws_cognito_user_pool_client.portal.id }
 output "cognito_domain_url" { value = "https://${aws_cognito_user_pool_domain.portal.domain}.auth.${data.aws_region.current.region}.amazoncognito.com" }
 output "distribution_id" { value = aws_cloudfront_distribution.portal.id }
+
+output "user_pool_arn" { value = aws_cognito_user_pool.portal.arn }

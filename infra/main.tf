@@ -212,3 +212,18 @@ module "liveness" {
   grace_periods  = var.liveness_grace_periods
   alarm_enabled  = var.liveness_alarm_enabled
 }
+
+# The portal invites users (Members pages): create, look up, add to the aoc_viewer group,
+# list. No delete, no password set, no MFA change; platform_admin stays Terraform-only.
+resource "aws_iam_role_policy" "portal_directory" {
+  name = "manage-portal-users"
+  role = module.identity.portal_role_name
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["cognito-idp:AdminCreateUser", "cognito-idp:AdminGetUser", "cognito-idp:AdminAddUserToGroup", "cognito-idp:ListUsers", "cognito-idp:ListUsersInGroup"]
+      Resource = module.portal.user_pool_arn
+    }]
+  })
+}
