@@ -2,11 +2,13 @@ data "aws_caller_identity" "current" {}
 data "aws_partition" "current" {}
 
 locals {
-  name        = "ec-${var.environment}"
-  account_id  = data.aws_caller_identity.current.account_id
-  partition   = data.aws_partition.current.partition
-  state_users = concat(var.state_user_principal_arns, [aws_iam_role.gha_apply.arn])
-  bucket_principals = distinct(concat(var.key_admin_principal_arns, local.state_users))
+  name       = "ec-${var.environment}"
+  account_id = data.aws_caller_identity.current.account_id
+  partition  = data.aws_partition.current.partition
+
+  # Deployment is from a workstation (no CI role), so state users are humans only.
+  key_admins        = concat(var.key_admin_principal_arns, [aws_iam_role.key_admin.arn])
+  bucket_principals = distinct(concat(local.key_admins, var.state_user_principal_arns))
 
   # R4: admins manage, never use. No kms:CreateGrant, no wildcard that includes it.
   kms_admin_actions = [
@@ -19,44 +21,34 @@ locals {
   ]
 }
 
-# ---------- GitHub OIDC + CI apply role (no long-lived keys) ----------
-resource "aws_iam_openid_connect_provider" "github" {
-  count          = var.create_github_oidc_provider ? 1 : 0
-  url            = "https://token.actions.githubusercontent.com"
-  client_id_list = ["sts.amazonaws.com"]
-}
-
-data "aws_iam_openid_connect_provider" "github" {
-  count = var.create_github_oidc_provider ? 0 : 1
-  url   = "https://token.actions.githubusercontent.com"
-}
-
-locals {
-  oidc_provider_arn = var.create_github_oidc_provider ? aws_iam_openid_connect_provider.github[0].arn : data.aws_iam_openid_connect_provider.github[0].arn
-}
-
-resource "aws_iam_role" "gha_apply" {
-  name                 = "${local.name}-gha-apply"
+# ---------- Break-glass key administrator ----------
+# Key policies have no root delegation (R4), so a key whose only admin is an SSO role
+# becomes unmanageable if Identity Center re-provisions that role under a new ARN.
+# This role has a stable ARN and is assumable by any principal matching the pattern
+# (e.g. the SSO admin role, whatever its suffix). It can repair key and bucket policies.
+resource "aws_iam_role" "key_admin" {
+  name                 = "${local.name}-key-admin"
   max_session_duration = 3600
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
       Effect    = "Allow"
-      Principal = { Federated = local.oidc_provider_arn }
-      Action    = "sts:AssumeRoleWithWebIdentity"
-      Condition = {
-        StringEquals = {
-          "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-          # Only jobs bound to the matching GitHub Environment (which carries required reviewers).
-          "token.actions.githubusercontent.com:sub" = "repo:${var.github_repository}:environment:${var.environment}"
-        }
-      }
+      Principal = { AWS = "arn:${local.partition}:iam::${local.account_id}:root" }
+      Action    = "sts:AssumeRole"
+      Condition = { ArnLike = { "aws:PrincipalArn" = var.key_admin_assumer_arn_patterns } }
     }]
   })
 }
 
-# TODO(review with Tim): replace with a scoped policy once the resource set is stable.
-resource "aws_iam_role_policy_attachment" "gha_apply_admin" {
-  role       = aws_iam_role.gha_apply.name
-  policy_arn = "arn:${local.partition}:iam::aws:policy/AdministratorAccess"
+resource "aws_iam_role_policy" "key_admin_repair" {
+  name = "repair-state-bucket-policy"
+  role = aws_iam_role.key_admin.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["s3:GetBucketPolicy", "s3:PutBucketPolicy", "s3:DeleteBucketPolicy"]
+      Resource = "arn:${local.partition}:s3:::${local.name}-tfstate-${local.account_id}"
+    }]
+  })
 }

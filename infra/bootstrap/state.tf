@@ -9,14 +9,14 @@ resource "aws_kms_key" "state" {
       {
         Sid       = "KeyAdministration"
         Effect    = "Allow"
-        Principal = { AWS = var.key_admin_principal_arns }
+        Principal = { AWS = local.key_admins }
         Action    = local.kms_admin_actions
         Resource  = "*"
       },
       {
         Sid       = "StateReadWriteViaS3"
         Effect    = "Allow"
-        Principal = { AWS = local.state_users }
+        Principal = { AWS = var.state_user_principal_arns }
         Action    = ["kms:Encrypt", "kms:Decrypt", "kms:GenerateDataKey", "kms:DescribeKey"]
         Resource  = "*"
         Condition = { StringEquals = { "kms:ViaService" = "s3.${var.region}.amazonaws.com" } }
@@ -50,6 +50,22 @@ resource "aws_s3_bucket_public_access_block" "state" {
 resource "aws_s3_bucket_versioning" "state" {
   bucket = aws_s3_bucket.state.id
   versioning_configuration { status = "Enabled" }
+}
+
+# Cost: superseded state versions expire; the current version is never touched.
+resource "aws_s3_bucket_lifecycle_configuration" "state" {
+  bucket     = aws_s3_bucket.state.id
+  depends_on = [aws_s3_bucket_versioning.state]
+  rule {
+    id     = "expire-old-state-versions"
+    status = "Enabled"
+    filter {}
+    noncurrent_version_expiration {
+      noncurrent_days           = var.state_noncurrent_days
+      newer_noncurrent_versions = 10
+    }
+    abort_incomplete_multipart_upload { days_after_initiation = 1 }
+  }
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "state" {

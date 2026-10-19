@@ -33,6 +33,20 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "trail" {
   }
 }
 
+# Cost: log files expire after trail_retention_days; the org trail keeps its own copy.
+resource "aws_s3_bucket_lifecycle_configuration" "trail" {
+  bucket     = aws_s3_bucket.trail.id
+  depends_on = [aws_s3_bucket_versioning.trail]
+  rule {
+    id     = "expire-trail-logs"
+    status = "Enabled"
+    filter {}
+    expiration { days = var.trail_retention_days }
+    noncurrent_version_expiration { noncurrent_days = 30 }
+    abort_incomplete_multipart_upload { days_after_initiation = 1 }
+  }
+}
+
 resource "aws_s3_bucket_policy" "trail" {
   bucket     = aws_s3_bucket.trail.id
   depends_on = [aws_s3_bucket_public_access_block.trail]
@@ -90,8 +104,16 @@ resource "aws_sns_topic_policy" "security_alerts" {
       Principal = { Service = "events.amazonaws.com" }
       Action    = "sns:Publish"
       Resource  = aws_sns_topic.security_alerts.arn
+      Condition = { ArnEquals = { "aws:SourceArn" = aws_cloudwatch_event_rule.kms_changes.arn } }
     }]
   })
+}
+
+resource "aws_sns_topic_subscription" "security_alerts_email" {
+  count     = var.alert_email == "" ? 0 : 1
+  topic_arn = aws_sns_topic.security_alerts.arn
+  protocol  = "email"
+  endpoint  = var.alert_email
 }
 
 resource "aws_cloudwatch_event_rule" "kms_changes" {
