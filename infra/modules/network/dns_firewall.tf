@@ -1,13 +1,18 @@
 # DNS Firewall: the VPC resolver only answers the allowlist; everything else gets NODATA.
 # Cost: $0.60 per million queries.
+# AWS stores names fully qualified (trailing dot); normalising here keeps plans clean.
+locals {
+  allowed_fqdns = [for d in compact(concat(var.worker_allowed_domains, [var.heartbeat_domain])) : endswith(d, ".") ? d : "${d}."]
+}
+
 resource "aws_route53_resolver_firewall_domain_list" "allow" {
   name    = "${var.name_prefix}-allow"
-  domains = compact(concat(var.worker_allowed_domains, [var.heartbeat_domain]))
+  domains = local.allowed_fqdns
 }
 
 resource "aws_route53_resolver_firewall_domain_list" "all" {
   name    = "${var.name_prefix}-all"
-  domains = ["*"]
+  domains = ["*."]
 }
 
 resource "aws_route53_resolver_firewall_rule_group" "egress" {

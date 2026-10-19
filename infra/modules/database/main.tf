@@ -12,9 +12,12 @@ resource "aws_db_parameter_group" "pg16" {
   name   = "${var.name_prefix}-pg16"
   family = "postgres16"
 
+  # Already the PG16 default; pinned so it can never be turned off. RDS records the
+  # method as pending-reboot, so that is declared to keep plans clean.
   parameter {
-    name  = "rds.force_ssl"
-    value = "1"
+    name         = "rds.force_ssl"
+    value        = "1"
+    apply_method = "pending-reboot"
   }
 }
 
