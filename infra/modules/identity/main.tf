@@ -120,3 +120,26 @@ resource "aws_iam_role_policy" "terminator" {
     ]
   })
 }
+
+# ---------- portal ----------
+# Onboarding writes source credentials (R5: never through Terraform). It can create and
+# overwrite them but cannot read them back: no GetSecretValue. Encryption with the secrets
+# key is granted in that key's policy (modules/kms, secret writers).
+resource "aws_iam_role" "portal" {
+  name               = "${var.name_prefix}-portal"
+  assume_role_policy = data.aws_iam_policy_document.task_trust.json
+}
+
+resource "aws_iam_role_policy" "portal" {
+  name = "portal"
+  role = aws_iam_role.portal.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid      = "WriteSourceCredentials"
+      Effect   = "Allow"
+      Action   = ["secretsmanager:CreateSecret", "secretsmanager:PutSecretValue", "secretsmanager:DescribeSecret", "secretsmanager:TagResource"]
+      Resource = var.source_secret_arn_pattern
+    }]
+  })
+}

@@ -18,3 +18,7 @@ output "ecr_repository_url" { value = module.compute.ecr_repository_url }
 output "ecs_cluster_name" { value = module.compute.cluster_name }
 output "db_bootstrap_task_family" { value = module.compute.db_bootstrap_task_family }
 output "liveness_topic_arn" { value = module.liveness.topic_arn }
+
+output "portal_url" { value = module.portal.public_url }
+output "cognito_user_pool_id" { value = module.portal.cognito_user_pool_id }
+output "build_project" { value = module.build.project_name }

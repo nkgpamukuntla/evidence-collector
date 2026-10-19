@@ -93,9 +93,12 @@ resource "aws_ecs_task_definition" "component" {
     essential              = true
     readonlyRootFilesystem = true
     mountPoints            = local.tmp_mount
-    environment            = concat(var.common_env, [{ name = "EC_COMPONENT", value = each.key }])
+    environment            = concat(var.common_env, each.value.extra_env, [{ name = "EC_COMPONENT", value = each.key }])
     logConfiguration       = local.log_config[each.key]
-  }, length(each.value.command) > 0 ? { command = each.value.command } : {})])
+    },
+    length(each.value.command) > 0 ? { command = each.value.command } : {},
+    each.value.container_port == null ? {} : { portMappings = [{ containerPort = each.value.container_port, protocol = "tcp" }] },
+  )])
 }
 
 resource "aws_ecs_service" "component" {
@@ -111,6 +114,17 @@ resource "aws_ecs_service" "component" {
     security_groups  = [each.value.security_group_id]
     assign_public_ip = false
   }
+
+  dynamic "load_balancer" {
+    for_each = each.value.target_group_arn == null ? [] : [each.value]
+    content {
+      target_group_arn = load_balancer.value.target_group_arn
+      container_name   = each.key
+      container_port   = load_balancer.value.container_port
+    }
+  }
+
+  health_check_grace_period_seconds = each.value.target_group_arn == null ? null : 60
 
   deployment_circuit_breaker {
     enable   = true

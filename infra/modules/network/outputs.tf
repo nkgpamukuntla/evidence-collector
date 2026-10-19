@@ -7,6 +7,8 @@ output "evaluator_sg_id" { value = aws_security_group.evaluator.id }
 output "worker_sg_id" { value = aws_security_group.worker.id }
 output "db_sg_id" { value = aws_security_group.db.id }
 output "db_bootstrap_sg_id" { value = aws_security_group.db_bootstrap.id }
+output "alb_sg_id" { value = aws_security_group.alb.id }
+output "portal_sg_id" { value = aws_security_group.portal.id }
 
 output "nat_public_ips" {
   description = "Source IPs Microsoft sees from the worker."

@@ -17,6 +17,10 @@ variable "components" {
     security_group_id = string
     role_arn          = string
     command           = list(string)
+    # Optional: behind a load balancer, and env vars only this component needs.
+    target_group_arn = optional(string)
+    container_port   = optional(number)
+    extra_env        = optional(list(object({ name = string, value = string })), [])
   }))
 }
 

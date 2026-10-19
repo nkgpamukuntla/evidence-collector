@@ -37,7 +37,7 @@ module "kms" {
   worker_role_arn              = module.identity.worker_role_arn
   evaluator_role_arn           = module.identity.evaluator_role_arn
   terminator_role_arn          = module.identity.terminator_role_arn
-  secret_writer_principal_arns = var.secret_writer_principal_arns
+  secret_writer_principal_arns = concat(var.secret_writer_principal_arns, [module.identity.portal_role_arn])
   raw_bucket_arn               = local.raw_bucket_arn
   source_secret_arn_pattern    = local.source_secret_arn_pattern
 }
@@ -84,7 +84,29 @@ module "database" {
   iam_db_users = {
     (module.identity.worker_role_name)    = var.db_worker_user
     (module.identity.evaluator_role_name) = var.db_evaluator_user
+    (module.identity.portal_role_name)    = "ec_portal"
   }
+}
+
+module "portal" {
+  source              = "./modules/portal"
+  name_prefix         = local.name_prefix
+  account_id          = local.account_id
+  vpc_id              = module.network.vpc_id
+  alb_subnet_ids      = module.network.worker_subnet_ids
+  alb_sg_id           = module.network.alb_sg_id
+  allowed_countries   = var.portal_allowed_countries
+  admin_emails        = var.portal_admin_emails
+  deletion_protection = local.is_prod
+}
+
+module "build" {
+  source             = "./modules/build"
+  name_prefix        = local.name_prefix
+  account_id         = local.account_id
+  ecr_repository_url = module.compute.ecr_repository_url
+  ecr_repository_arn = module.compute.ecr_repository_arn
+  log_retention_days = var.log_retention_days
 }
 
 module "compute" {
@@ -129,6 +151,32 @@ module "compute" {
       security_group_id = module.network.evaluator_sg_id
       role_arn          = module.identity.evaluator_role_arn
       command           = var.evaluator_command
+    }
+    # Portal: API + React app. Runs in the worker subnets (NAT for Cognito and Secrets
+    # Manager, names limited by DNS Firewall), reached only through the internal ALB.
+    portal = {
+      cpu               = var.portal_cpu
+      memory            = var.portal_memory
+      desired           = local.image_tag == "unset" ? 0 : var.portal_desired_count
+      subnet_ids        = module.network.worker_subnet_ids
+      security_group_id = module.network.portal_sg_id
+      role_arn          = module.identity.portal_role_arn
+      command           = []
+      target_group_arn  = module.portal.target_group_arn
+      container_port    = 8000
+      extra_env = [
+        { name = "ENVIRONMENT", value = var.environment },
+        { name = "AWS_REGION", value = var.region },
+        { name = "PGUSER", value = "ec_portal" },
+        { name = "DB_IAM_AUTH", value = "true" },
+        { name = "AUTH_MODE", value = "cognito" },
+        { name = "PUBLIC_URL", value = module.portal.public_url },
+        { name = "COGNITO_DOMAIN", value = module.portal.cognito_domain_url },
+        { name = "COGNITO_CLIENT_ID", value = module.portal.cognito_client_id },
+        { name = "COGNITO_USER_POOL_ID", value = module.portal.cognito_user_pool_id },
+        { name = "SOURCE_SECRET_PREFIX", value = "ec/${var.environment}/source/" },
+        { name = "SECRETS_KMS_KEY_ID", value = module.kms.secrets_key_arn },
+      ]
     }
   }
 }

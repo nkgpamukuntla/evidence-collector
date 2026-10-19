@@ -28,3 +28,9 @@ db_multi_az             = false
 db_allocated_storage    = 20
 db_engine_version       = "16.15" # matches the pinned local/CI image (R9)
 heartbeat_domain        = ""      # set once the external monitor is chosen
+
+# --- portal ---
+portal_desired_count     = 1
+portal_admin_emails      = ["<you@company.com>"] # Cognito emails a temporary password
+portal_allowed_countries = []                    # prod: ["US"]
+db_bootstrap_command     = ["python", "-m", "app.migrate", "--dir", "migrations"]

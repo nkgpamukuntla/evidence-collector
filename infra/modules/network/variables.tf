@@ -41,3 +41,8 @@ variable "heartbeat_domain" {
   type    = string
   default = ""
 }
+
+variable "portal_port" {
+  type    = number
+  default = 8000
+}

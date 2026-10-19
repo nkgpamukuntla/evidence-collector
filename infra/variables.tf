@@ -146,6 +146,7 @@ variable "worker_allowed_domains" {
     "login.microsoftonline.com",
     "graph.microsoft.com",
     "amazonaws.com", "*.amazonaws.com", "*.api.aws",
+    "*.amazoncognito.com", # portal sign-in token exchange
   ]
 }
 
@@ -200,7 +201,7 @@ variable "evaluator_command" {
 variable "db_bootstrap_command" {
   description = "One-off task: migrations + CONNECT grants."
   type        = list(string)
-  default     = ["python", "tools/migrate.py", "--dir", "migrations"]
+  default     = ["python", "-m", "app.migrate", "--dir", "migrations"]
 }
 
 variable "db_instance_class" {
@@ -240,4 +241,33 @@ variable "db_evaluator_user" {
   description = "Postgres role the evaluator logs in as with IAM auth (created by the migrations, GRANT rds_iam)."
   type        = string
   default     = "ec_evaluator"
+}
+
+# ---------- portal ----------
+variable "portal_desired_count" {
+  description = "Portal tasks once an image exists (forced to 0 while envs/<env>.image is 'unset')."
+  type        = number
+  default     = 1
+}
+
+variable "portal_cpu" {
+  type    = number
+  default = 256
+}
+
+variable "portal_memory" {
+  type    = number
+  default = 512
+}
+
+variable "portal_admin_emails" {
+  description = "Initial platform administrators; Cognito emails each a temporary password."
+  type        = list(string)
+  default     = []
+}
+
+variable "portal_allowed_countries" {
+  description = "CloudFront geo allowlist for the portal (ISO 3166-1 alpha-2)."
+  type        = list(string)
+  default     = ["US"]
 }
