@@ -21,6 +21,8 @@ variable "components" {
     target_group_arn = optional(string)
     container_port   = optional(number)
     extra_env        = optional(list(object({ name = string, value = string })), [])
+    # Optional: run as a scheduled one-off task instead of (or as well as) a service, e.g. "rate(6 hours)".
+    schedule = optional(string)
   }))
 }
 

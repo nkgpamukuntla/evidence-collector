@@ -13,6 +13,15 @@ locals {
   heartbeat_namespace = "EvidenceCollector"
   heartbeat_metric    = "CollectionHeartbeat"
 
+  # Settings every runtime component shares (database login is by IAM token, no password).
+  runtime_env = [
+    { name = "ENVIRONMENT", value = var.environment },
+    { name = "AWS_REGION", value = var.region },
+    { name = "DB_IAM_AUTH", value = "true" },
+  ]
+  # Scheduled collection starts only once the app registration exists and an image is deployed.
+  collect = var.ms_client_id != "" && var.ms_cert_thumbprint_sha1 != "" && local.image_tag != "unset"
+
   image_file = "${path.module}/envs/${var.environment}.image"
   image_tag  = fileexists(local.image_file) ? trimspace(file(local.image_file)) : "unset"
 }
@@ -141,7 +150,15 @@ module "compute" {
       subnet_ids        = module.network.worker_subnet_ids
       security_group_id = module.network.worker_sg_id
       role_arn          = module.identity.worker_role_arn
-      command           = var.worker_command
+      command           = length(var.worker_command) > 0 ? var.worker_command : ["python", "-m", "app.worker"]
+      schedule          = local.collect ? var.collection_schedule : null
+      extra_env = concat(local.runtime_env, [
+        { name = "PGUSER", value = var.db_worker_user },
+        { name = "MS_CLIENT_ID", value = var.ms_client_id },
+        { name = "MS_CERT_THUMBPRINT_SHA1", value = var.ms_cert_thumbprint_sha1 },
+        { name = "MS_CERT_THUMBPRINT_SHA256", value = var.ms_cert_thumbprint_sha256 },
+        { name = "EC_RAW_KEYS", value = jsonencode(module.kms.raw_key_arns) },
+      ])
     }
     evaluator = {
       cpu               = var.evaluator_cpu
@@ -150,7 +167,9 @@ module "compute" {
       subnet_ids        = module.network.evaluator_subnet_ids
       security_group_id = module.network.evaluator_sg_id
       role_arn          = module.identity.evaluator_role_arn
-      command           = var.evaluator_command
+      command           = length(var.evaluator_command) > 0 ? var.evaluator_command : ["python", "-m", "app.evaluator"]
+      schedule          = local.collect ? var.evaluation_schedule : null
+      extra_env         = concat(local.runtime_env, [{ name = "PGUSER", value = var.db_evaluator_user }])
     }
     # Portal: API + React app. Runs in the worker subnets (NAT for Cognito and Secrets
     # Manager, names limited by DNS Firewall), reached only through the internal ALB.
@@ -176,6 +195,7 @@ module "compute" {
         { name = "COGNITO_USER_POOL_ID", value = module.portal.cognito_user_pool_id },
         { name = "SOURCE_SECRET_PREFIX", value = "ec/${var.environment}/source/" },
         { name = "SECRETS_KMS_KEY_ID", value = module.kms.secrets_key_arn },
+        { name = "MS_CLIENT_ID", value = var.ms_client_id },
       ]
     }
   }

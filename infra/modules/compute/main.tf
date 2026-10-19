@@ -187,3 +187,73 @@ resource "aws_ecs_task_definition" "db_bootstrap" {
     logConfiguration = local.log_config["db-bootstrap"]
   }])
 }
+
+# ---------- scheduled runs (EventBridge Scheduler -> ECS RunTask) ----------
+# The worker and evaluator run as one-off tasks on a schedule: no idle containers to pay for.
+locals {
+  scheduled = { for k, v in var.components : k => v if v.schedule != null }
+}
+
+resource "aws_iam_role" "scheduler" {
+  count = length(local.scheduled) > 0 ? 1 : 0
+  name  = "${var.name_prefix}-scheduler"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "scheduler.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+      Condition = { StringEquals = { "aws:SourceAccount" = data.aws_caller_identity.current.account_id } }
+    }]
+  })
+}
+
+data "aws_caller_identity" "current" {}
+
+resource "aws_iam_role_policy" "scheduler" {
+  count = length(local.scheduled) > 0 ? 1 : 0
+  name  = "run-scheduled-tasks"
+  role  = aws_iam_role.scheduler[0].id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect    = "Allow"
+        Action    = "ecs:RunTask"
+        Resource  = [for k, _ in local.scheduled : "${aws_ecs_task_definition.component[k].arn_without_revision}:*"]
+        Condition = { ArnEquals = { "ecs:cluster" = aws_ecs_cluster.main.arn } }
+      },
+      {
+        Effect    = "Allow"
+        Action    = "iam:PassRole"
+        Resource  = concat([aws_iam_role.task_execution.arn], [for k, v in local.scheduled : v.role_arn])
+        Condition = { StringEquals = { "iam:PassedToService" = "ecs-tasks.amazonaws.com" } }
+      },
+    ]
+  })
+}
+
+resource "aws_scheduler_schedule" "component" {
+  for_each                     = local.scheduled
+  name                         = "${var.name_prefix}-${each.key}"
+  schedule_expression          = each.value.schedule
+  schedule_expression_timezone = "UTC"
+  flexible_time_window { mode = "OFF" }
+
+  target {
+    arn      = aws_ecs_cluster.main.arn
+    role_arn = aws_iam_role.scheduler[0].arn
+    ecs_parameters {
+      task_definition_arn = aws_ecs_task_definition.component[each.key].arn
+      launch_type         = "FARGATE"
+      network_configuration {
+        subnets          = each.value.subnet_ids
+        security_groups  = [each.value.security_group_id]
+        assign_public_ip = false
+      }
+    }
+    retry_policy {
+      maximum_retry_attempts = 0
+    }
+  }
+}

@@ -271,3 +271,35 @@ variable "portal_allowed_countries" {
   type        = list(string)
   default     = ["US"]
 }
+
+# ---------- Microsoft source (Phase 2) ----------
+# None of these is a secret: the private key never leaves KMS (R3).
+variable "ms_client_id" {
+  description = "Application (client) ID of the multi-tenant app registration. Empty = collection off."
+  type        = string
+  default     = ""
+}
+
+variable "ms_cert_thumbprint_sha1" {
+  description = "x5t (base64url SHA-1) of the certificate uploaded to the app registration."
+  type        = string
+  default     = ""
+}
+
+variable "ms_cert_thumbprint_sha256" {
+  description = "x5t#S256 of the same certificate."
+  type        = string
+  default     = ""
+}
+
+variable "collection_schedule" {
+  description = "When the worker collects (EventBridge Scheduler expression, UTC)."
+  type        = string
+  default     = "cron(0 */6 * * ? *)"
+}
+
+variable "evaluation_schedule" {
+  description = "When the evaluator scores new bundles; after the worker."
+  type        = string
+  default     = "cron(20 */6 * * ? *)"
+}
