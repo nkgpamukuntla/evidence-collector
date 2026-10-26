@@ -16,6 +16,7 @@ variable "key_admin_principal_arns" {
 variable "worker_role_arn" { type = string }
 variable "evaluator_role_arn" { type = string }
 variable "terminator_role_arn" { type = string }
+variable "portal_role_arn" { type = string }
 
 variable "secret_writer_principal_arns" {
   type    = list(string)

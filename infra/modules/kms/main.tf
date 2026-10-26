@@ -1,4 +1,4 @@
-# Four kinds of key, one job each. R4: every key policy is the only authority over its
+# Five kinds of key, one job each. R4: every key policy is the only authority over its
 # key: no statement names the account root, admins manage but never use, and nobody
 # is given kms:CreateGrant.
 locals {
@@ -71,6 +71,52 @@ resource "aws_kms_key" "raw" {
 resource "aws_kms_alias" "raw" {
   for_each      = aws_kms_key.raw
   name          = "alias/${var.name_prefix}-raw-${each.key}"
+  target_key_id = each.value.key_id
+}
+
+# ---------- collector[tenant]: opens offline-collector bundles for one office ----------
+# Asymmetric: the collector, run on a county PC with no AWS access, wraps each bundle's
+# content key with this key's public half (RSA-OAEP-SHA-256). Only the portal may unwrap,
+# only with that algorithm. Asymmetric keys cannot rotate; a new key means a new download.
+resource "aws_kms_key" "collector" {
+  for_each                 = toset(var.tenant_ids)
+  description              = "${var.name_prefix} collector bundles, tenant ${each.key}"
+  key_usage                = "ENCRYPT_DECRYPT"
+  customer_master_key_spec = "RSA_3072"
+  deletion_window_in_days  = var.deletion_window_days
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      local.admin_statement,
+      {
+        Sid       = "PortalReadsPublicKey"
+        Effect    = "Allow"
+        Principal = { AWS = var.portal_role_arn }
+        Action    = ["kms:GetPublicKey", "kms:DescribeKey"]
+        Resource  = "*"
+      },
+      {
+        Sid       = "PortalOpensBundles"
+        Effect    = "Allow"
+        Principal = { AWS = var.portal_role_arn }
+        Action    = ["kms:Decrypt"]
+        Resource  = "*"
+        Condition = { StringEquals = { "kms:EncryptionAlgorithm" = "RSAES_OAEP_SHA_256" } }
+      },
+      {
+        Sid       = "TerminatorShreds"
+        Effect    = "Allow"
+        Principal = { AWS = var.terminator_role_arn }
+        Action    = ["kms:ScheduleKeyDeletion", "kms:CancelKeyDeletion", "kms:DescribeKey"]
+        Resource  = "*"
+      },
+    ]
+  })
+}
+
+resource "aws_kms_alias" "collector" {
+  for_each      = aws_kms_key.collector
+  name          = "alias/${var.name_prefix}-collector-${each.key}"
   target_key_id = each.value.key_id
 }
 

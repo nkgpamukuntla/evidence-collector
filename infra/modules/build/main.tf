@@ -84,6 +84,12 @@ resource "aws_iam_role_policy" "build" {
         Resource = "${aws_s3_bucket.source.arn}/*"
       },
       {
+        Sid      = "KeepCodeSigningCertificate"
+        Effect   = "Allow"
+        Action   = ["s3:PutObject"]
+        Resource = "${aws_s3_bucket.source.arn}/codesign/*"
+      },
+      {
         Sid      = "EcrLogin"
         Effect   = "Allow"
         Action   = ["ecr:GetAuthorizationToken"]
@@ -131,6 +137,14 @@ resource "aws_codebuild_project" "app" {
       name  = "ECR_REPOSITORY_URL"
       value = var.ecr_repository_url
     }
+    environment_variable {
+      name  = "CODESIGN_KEY_ID"
+      value = aws_kms_key.codesign.key_id
+    }
+    environment_variable {
+      name  = "SOURCE_BUCKET"
+      value = aws_s3_bucket.source.id
+    }
   }
 
   logs_config {
@@ -138,4 +152,55 @@ resource "aws_codebuild_project" "app" {
       group_name = aws_cloudwatch_log_group.build.name
     }
   }
+}
+
+# ---------- code signing: the offline collector's Authenticode signature ----------
+# RSA-3072 in KMS (R3: no private key on disk). Only this build signs, only with
+# PKCS#1 v1.5 SHA-256; administrators manage the key but cannot use it (R4).
+# The self-signed certificate over it is made once by the build and kept under codesign/
+# in the source bucket. A commercial certificate later reuses this key via a CSR.
+resource "aws_kms_key" "codesign" {
+  description              = "${var.name_prefix} collector code signing (Authenticode)"
+  key_usage                = "SIGN_VERIFY"
+  customer_master_key_spec = "RSA_3072"
+  deletion_window_in_days  = var.deletion_window_days
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "KeyAdministration"
+        Effect    = "Allow"
+        Principal = { AWS = var.key_admin_principal_arns }
+        Action = [
+          "kms:CreateAlias", "kms:DeleteAlias", "kms:UpdateAlias",
+          "kms:Describe*", "kms:Get*", "kms:List*",
+          "kms:EnableKey", "kms:DisableKey",
+          "kms:PutKeyPolicy", "kms:UpdateKeyDescription",
+          "kms:TagResource", "kms:UntagResource",
+          "kms:ScheduleKeyDeletion", "kms:CancelKeyDeletion", "kms:RevokeGrant",
+        ]
+        Resource = "*"
+      },
+      {
+        Sid       = "BuildSigns"
+        Effect    = "Allow"
+        Principal = { AWS = aws_iam_role.build.arn }
+        Action    = ["kms:Sign"]
+        Resource  = "*"
+        Condition = { StringEquals = { "kms:SigningAlgorithm" = "RSASSA_PKCS1_V1_5_SHA_256" } }
+      },
+      {
+        Sid       = "BuildReadsPublicKey"
+        Effect    = "Allow"
+        Principal = { AWS = aws_iam_role.build.arn }
+        Action    = ["kms:GetPublicKey", "kms:DescribeKey"]
+        Resource  = "*"
+      },
+    ]
+  })
+}
+
+resource "aws_kms_alias" "codesign" {
+  name          = "alias/${var.name_prefix}-codesign"
+  target_key_id = aws_kms_key.codesign.key_id
 }

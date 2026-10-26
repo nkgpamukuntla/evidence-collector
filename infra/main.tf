@@ -46,6 +46,7 @@ module "kms" {
   worker_role_arn              = module.identity.worker_role_arn
   evaluator_role_arn           = module.identity.evaluator_role_arn
   terminator_role_arn          = module.identity.terminator_role_arn
+  portal_role_arn              = module.identity.portal_role_arn
   secret_writer_principal_arns = concat(var.secret_writer_principal_arns, [module.identity.portal_role_arn])
   raw_bucket_arn               = local.raw_bucket_arn
   source_secret_arn_pattern    = local.source_secret_arn_pattern
@@ -116,6 +117,9 @@ module "build" {
   ecr_repository_url = module.compute.ecr_repository_url
   ecr_repository_arn = module.compute.ecr_repository_arn
   log_retention_days = var.log_retention_days
+
+  key_admin_principal_arns = var.key_admin_principal_arns
+  deletion_window_days     = var.key_deletion_window_days
 }
 
 module "compute" {
@@ -196,6 +200,7 @@ module "compute" {
         { name = "SOURCE_SECRET_PREFIX", value = "ec/${var.environment}/source/" },
         { name = "SECRETS_KMS_KEY_ID", value = module.kms.secrets_key_arn },
         { name = "MS_CLIENT_ID", value = var.ms_client_id },
+        { name = "EC_COLLECTOR_KEYS", value = jsonencode(module.kms.collector_key_arns) },
       ]
     }
   }
