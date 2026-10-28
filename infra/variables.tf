@@ -293,13 +293,13 @@ variable "ms_cert_thumbprint_sha256" {
 }
 
 variable "collection_schedule" {
-  description = "When the worker collects (EventBridge Scheduler expression, UTC)."
+  description = "When the worker checks for due offices (EventBridge Scheduler expression, UTC). Hourly: each office is scanned once a day at the end of its own business day, in its own time zone (app/schedule.py); runs with nothing due exit in seconds."
   type        = string
-  default     = "cron(0 */6 * * ? *)"
+  default     = "cron(5 * * * ? *)"
 }
 
 variable "evaluation_schedule" {
-  description = "When the evaluator scores new bundles; after the worker."
+  description = "When the evaluator scores new bundles; 20 minutes after each worker check. It only opens runs not yet evaluated."
   type        = string
-  default     = "cron(20 */6 * * ? *)"
+  default     = "cron(25 * * * ? *)"
 }
