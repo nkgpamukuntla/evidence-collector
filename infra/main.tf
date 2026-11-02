@@ -162,6 +162,8 @@ module "compute" {
         { name = "MS_CERT_THUMBPRINT_SHA1", value = var.ms_cert_thumbprint_sha1 },
         { name = "MS_CERT_THUMBPRINT_SHA256", value = var.ms_cert_thumbprint_sha256 },
         { name = "EC_RAW_KEYS", value = jsonencode(module.kms.raw_key_arns) },
+        { name = "PUBLIC_URL", value = module.portal.public_url },
+        { name = "SES_FROM", value = var.email_from },
       ])
     }
     evaluator = {
@@ -201,6 +203,7 @@ module "compute" {
         { name = "SECRETS_KMS_KEY_ID", value = module.kms.secrets_key_arn },
         { name = "MS_CLIENT_ID", value = var.ms_client_id },
         { name = "EC_COLLECTOR_KEYS", value = jsonencode(module.kms.collector_key_arns) },
+        { name = "SES_FROM", value = var.email_from },
       ]
     }
   }
