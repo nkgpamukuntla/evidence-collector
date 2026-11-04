@@ -17,7 +17,7 @@ variable "email_domain" {
 }
 
 variable "email_from" {
-  description = "Sender, e.g. \"CCR Platform <noreply@dbizsolution.com>\". Set only after the domain is verified."
+  description = "Sender, e.g. \"D-Biz Assure <noreply@dbizsolution.com>\". Set only after the domain is verified."
   type        = string
   default     = ""
 }
